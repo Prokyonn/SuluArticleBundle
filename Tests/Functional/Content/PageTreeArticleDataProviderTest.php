@@ -14,6 +14,7 @@ namespace Sulu\Bundle\ArticleBundle\Tests\Functional\Content;
 use Ferrandini\Urlizer;
 use ONGR\ElasticsearchBundle\Service\Manager;
 use Ramsey\Uuid\Uuid;
+use Sulu\Bundle\ArticleBundle\Content\PageTreeArticleDataProvider;
 use Sulu\Bundle\PageBundle\Document\PageDocument;
 use Sulu\Bundle\TestBundle\Testing\SuluTestCase;
 use Sulu\Component\SmartContent\DataProviderResult;
@@ -55,6 +56,37 @@ class PageTreeArticleDataProviderTest extends SuluTestCase
         $this->assertInstanceOf(DataProviderResult::class, $result);
         $this->assertCount(1, $result->getItems());
         $this->assertEquals($articles[0]['id'], $result->getItems()[0]->getId());
+    }
+
+    public function testSortByTitle()
+    {
+        $page1 = $this->createPage('Test Page', '/page-1');
+
+        $articles = [
+            $this->createArticle($page1, 'Test A'),
+            $this->createArticle($page1, 'Test B'),
+        ];
+
+        $filters = [
+            'locale' => 'de',
+            'sortBy' => 'title',
+            'sortMethod' => 'asc'
+        ];
+
+        /** @var PageTreeArticleDataProvider $dataProvider */
+        $dataProvider = $this->getContainer()->get('sulu_article.content.page_tree_data_provider');
+        $result = $dataProvider->resolveDataItems(['dataSource' => $page1->getUuid()], [], $filters);
+
+        $this->assertInstanceOf(DataProviderResult::class, $result);
+        $this->assertEquals($articles[0]['id'], $result->getItems()[0]->getId());
+        $this->assertEquals($articles[1]['id'], $result->getItems()[1]->getId());
+
+        $filters['sortMethod'] = 'desc';
+
+        $result = $dataProvider->resolveDataItems(['dataSource' => $page1->getUuid()], [], $filters);
+        $this->assertInstanceOf(DataProviderResult::class, $result);
+        $this->assertEquals($articles[1]['id'], $result->getItems()[0]->getId());
+        $this->assertEquals($articles[0]['id'], $result->getItems()[1]->getId());
     }
 
     public function testResolveDataSource()
