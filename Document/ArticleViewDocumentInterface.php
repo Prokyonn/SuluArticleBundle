@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 /*
  * This file is part of Sulu.
  *
@@ -479,19 +481,19 @@ interface ArticleViewDocumentInterface
     public function getMainWebspace();
 
     /**
-     * @param null|string $mainWebspace
+     * @param string|null $mainWebspace
      *
      * @return $this
      */
     public function setMainWebspace($mainWebspace);
 
     /**
-     * @return null|string[]
+     * @return string[]|null
      */
     public function getAdditionalWebspaces();
 
     /**
-     * @param null|string[] $additionalWebspace
+     * @param string[]|null $additionalWebspace
      *
      * @return $this
      */
@@ -508,4 +510,14 @@ interface ArticleViewDocumentInterface
      * @return $this
      */
     public function setTargetWebspace($targetWebspace);
+
+    /**
+     * @return string[]
+     */
+    public function getContentFields(): array;
+
+    /**
+     * @param string[] $searchableContent
+     */
+    public function setContentFields(array $searchableContent): self;
 }
