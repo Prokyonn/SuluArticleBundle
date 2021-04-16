@@ -258,7 +258,7 @@ class ArticleIndexer implements IndexerInterface
         $tag = 'sulu.search.field';
         $contentFields = [];
         foreach ($structure->getProperties() as $property) {
-            if (\count($property->getComponents()) > 0) {
+            if (method_exists($property, 'getComponents') && \count($property->getComponents()) > 0) {
                 $blocks = $document->getStructure()->getProperty($property->getName())->getValue();
                 if (isset($blocks['hotspots'])) {
                     $blocks = $blocks['hotspots'];
@@ -267,7 +267,7 @@ class ArticleIndexer implements IndexerInterface
             } elseif ($property->hasTag($tag)) {
                 $value = $document->getStructure()->getProperty($property->getName())->getValue();
                 if (is_string($value) && '' !== $value) {
-                    $contentFields[] = $value;
+                    $contentFields[] = strip_tags($value);
                 }
             }
         }
@@ -275,13 +275,16 @@ class ArticleIndexer implements IndexerInterface
         return $contentFields;
     }
 
+    /**
+     * @return string[]
+     */
     private function getBlockContentFieldsRecursive(array $blocks, ArticleDocument $document, PropertyMetadata $blockMetaData, string $tag): array
     {
         $contentFields = [];
         foreach ($blockMetaData->getComponents() as $component) {
             /** @var PropertyMetadata $componentProperty */
             foreach ($component->getChildren() as $componentProperty) {
-                if (\count($componentProperty->getComponents()) > 0) {
+                if (method_exists($componentProperty, 'getComponents') && \count($componentProperty->getComponents()) > 0) {
                     $filteredBlocks = array_filter($blocks, function($block) use ($component) {
                         return $block['type'] === $component->getName();
                     });
@@ -290,7 +293,15 @@ class ArticleIndexer implements IndexerInterface
                         if (isset($filteredBlock['hotspots'])) {
                             $filteredBlock = $filteredBlock['hotspots'];
                         }
-                        $contentFields = array_merge($contentFields, $this->getBlockContentFieldsRecursive($filteredBlock[$componentProperty->getName()], $document, $componentProperty, $tag));
+                        $contentFields = array_merge(
+                            $contentFields,
+                            $this->getBlockContentFieldsRecursive(
+                                $filteredBlock[$componentProperty->getName()],
+                                $document,
+                                $componentProperty,
+                                $tag
+                            )
+                        );
                     }
                 }
 
