@@ -11,12 +11,10 @@
 
 namespace Sulu\Bundle\ArticleBundle\Document\Index;
 
-use Massive\Bundle\SearchBundle\Search\Metadata\ComplexMetadata;
 use ONGR\ElasticsearchBundle\Collection\Collection;
 use ONGR\ElasticsearchBundle\Service\Manager;
 use ONGR\ElasticsearchDSL\Query\MatchAllQuery;
 use ONGR\ElasticsearchDSL\Query\TermLevel\TermQuery;
-use Sulu\Bundle\AdminBundle\Metadata\SchemaMetadata\PropertyMetadata;
 use Sulu\Bundle\ArticleBundle\Document\ArticleDocument;
 use Sulu\Bundle\ArticleBundle\Document\ArticlePageDocument;
 use Sulu\Bundle\ArticleBundle\Document\ArticlePageViewObject;
@@ -33,16 +31,16 @@ use Sulu\Bundle\DocumentManagerBundle\Bridge\DocumentInspector;
 use Sulu\Bundle\RouteBundle\PageTree\PageTreeTrait;
 use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Bundle\SecurityBundle\UserManager\UserManager;
-use Sulu\Component\Content\Compat\Block\BlockPropertyInterface;
-use Sulu\Component\Content\Compat\PropertyInterface;
 use Sulu\Component\Content\Document\Extension\ExtensionContainer;
 use Sulu\Component\Content\Document\LocalizationState;
 use Sulu\Component\Content\Document\WorkflowStage;
 use Sulu\Component\Content\Metadata\BlockMetadata;
 use Sulu\Component\Content\Metadata\Factory\StructureMetadataFactoryInterface;
+use Sulu\Component\Content\Metadata\PropertyMetadata;
 use Sulu\Component\Content\Metadata\StructureMetadata;
 use Sulu\Component\DocumentManager\DocumentManagerInterface;
 use Sulu\Component\DocumentManager\Exception\DocumentManagerException;
+use Symfony\Component\Validator\Mapping\PropertyMetadataInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -264,8 +262,11 @@ class ArticleIndexer implements IndexerInterface
         $tag = 'sulu.search.field';
         $contentFields = [];
         foreach ($structure->getProperties() as $property) {
-            if ($property instanceof BlockMetadata) {
+            if (\count($property->getComponents()) > 0) {
                 $blocks = $document->getStructure()->getProperty($property->getName())->getValue();
+                if (isset($blocks['hotspots'])) {
+                    $blocks = $blocks['hotspots'];
+                }
                 $contentFields = array_merge($contentFields, $this->getBlockContentFieldsRecursive($blocks, $document, $property, $tag));
             } else if ($property->hasTag($tag)) {
                 $value = $document->getStructure()->getProperty($property->getName())->getValue();
@@ -278,17 +279,21 @@ class ArticleIndexer implements IndexerInterface
         return $contentFields;
     }
 
-    private function getBlockContentFieldsRecursive(array $blocks, ArticleDocument $document, BlockMetadata $blockMetaData, string $tag): array
+    private function getBlockContentFieldsRecursive(array $blocks, ArticleDocument $document, PropertyMetadata $blockMetaData, string $tag): array
     {
         $contentFields = [];
         foreach ($blockMetaData->getComponents() as $component) {
+            /** @var PropertyMetadata $componentProperty */
             foreach ($component->getChildren() as $componentProperty) {
-                if ($componentProperty instanceof BlockMetadata) {
+                if (\count($componentProperty->getComponents()) > 0) {
                     $filteredBlocks = array_filter($blocks, function ($block) use ($component) {
                         return $block['type'] === $component->getName();
                     });
 
                     foreach ($filteredBlocks as $filteredBlock) {
+                        if (isset($filteredBlock['hotspots'])) {
+                            $filteredBlock = $filteredBlock['hotspots'];
+                        }
                         $contentFields = array_merge($contentFields, $this->getBlockContentFieldsRecursive($filteredBlock[$componentProperty->getName()], $document, $componentProperty, $tag));
                     }
                 }
