@@ -346,6 +346,10 @@ class ArticleIndexerTest extends SuluTestCase
 
     public function testIndexTaggedPropertiesImageMap(): void
     {
+        if (!class_exists('Sulu\Bundle\MediaBundle\Content\Types\ImageMapContentType')) {
+            $this->markTestSkipped('Only for Sulu > 2.2.0');
+        }
+
         $data = [
             'title' => 'Test Article',
             'imageMap' => [
