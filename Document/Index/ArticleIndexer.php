@@ -34,13 +34,11 @@ use Sulu\Bundle\SecurityBundle\UserManager\UserManager;
 use Sulu\Component\Content\Document\Extension\ExtensionContainer;
 use Sulu\Component\Content\Document\LocalizationState;
 use Sulu\Component\Content\Document\WorkflowStage;
-use Sulu\Component\Content\Metadata\BlockMetadata;
 use Sulu\Component\Content\Metadata\Factory\StructureMetadataFactoryInterface;
 use Sulu\Component\Content\Metadata\PropertyMetadata;
 use Sulu\Component\Content\Metadata\StructureMetadata;
 use Sulu\Component\DocumentManager\DocumentManagerInterface;
 use Sulu\Component\DocumentManager\Exception\DocumentManagerException;
-use Symfony\Component\Validator\Mapping\PropertyMetadataInterface;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 
@@ -132,8 +130,7 @@ class ArticleIndexer implements IndexerInterface
         DocumentInspector $inspector,
         WebspaceResolver $webspaceResolver,
         array $typeConfiguration
-    )
-    {
+    ) {
         $this->structureMetadataFactory = $structureMetadataFactory;
         $this->userManager = $userManager;
         $this->contactRepository = $contactRepository;
@@ -172,8 +169,7 @@ class ArticleIndexer implements IndexerInterface
         ArticleDocument $document,
         string $locale,
         string $localizationState = LocalizationState::LOCALIZED
-    ): ArticleViewDocumentInterface
-    {
+    ): ArticleViewDocumentInterface {
         $article = $this->findOrCreateViewDocument($document, $locale, $localizationState);
         if (!$article) {
             return null;
@@ -268,9 +264,9 @@ class ArticleIndexer implements IndexerInterface
                     $blocks = $blocks['hotspots'];
                 }
                 $contentFields = array_merge($contentFields, $this->getBlockContentFieldsRecursive($blocks, $document, $property, $tag));
-            } else if ($property->hasTag($tag)) {
+            } elseif ($property->hasTag($tag)) {
                 $value = $document->getStructure()->getProperty($property->getName())->getValue();
-                if (is_string($value) && $value !== '') {
+                if (is_string($value) && '' !== $value) {
                     $contentFields[] = $value;
                 }
             }
@@ -286,7 +282,7 @@ class ArticleIndexer implements IndexerInterface
             /** @var PropertyMetadata $componentProperty */
             foreach ($component->getChildren() as $componentProperty) {
                 if (\count($componentProperty->getComponents()) > 0) {
-                    $filteredBlocks = array_filter($blocks, function ($block) use ($component) {
+                    $filteredBlocks = array_filter($blocks, function($block) use ($component) {
                         return $block['type'] === $component->getName();
                     });
 
@@ -305,7 +301,7 @@ class ArticleIndexer implements IndexerInterface
                 foreach ($blocks as $block) {
                     if ($block['type'] === $component->getName()) {
                         $blockValue = $block[$componentProperty->getName()];
-                        if (\is_string($blockValue) && $blockValue !== '') {
+                        if (\is_string($blockValue) && '' !== $blockValue) {
                             $contentFields[] = strip_tags($blockValue);
                         }
                     }
@@ -323,8 +319,7 @@ class ArticleIndexer implements IndexerInterface
         ArticleDocument $document,
         string $locale,
         string $localizationState
-    ): ArticleViewDocumentInterface
-    {
+    ): ArticleViewDocumentInterface {
         $articleId = $this->getViewDocumentId($document->getUuid(), $locale);
         /** @var ArticleViewDocumentInterface $article */
         $article = $this->manager->find($this->documentFactory->getClass('article'), $articleId);
