@@ -32,8 +32,7 @@ abstract class AbstractArticleDataProviderResolver implements DataProviderResolv
         private ContentStructureBridgeFactory $contentStructureBridgeFactory,
         private StructureResolverInterface $structureResolver
 //        bool $showDrafts
-    )
-    {
+    ) {
     }
 
     public function getProviderConfiguration(): ProviderConfigurationInterface
@@ -56,8 +55,7 @@ abstract class AbstractArticleDataProviderResolver implements DataProviderResolv
         ?int $limit = null,
         int $article = 1,
         ?int $pageSize = null
-    ): DataProviderResult
-    {
+    ): DataProviderResult {
         $providerResult = $this->articleDataProvider->resolveResourceItems(
             $filters,
             $propertyParameters,
@@ -68,7 +66,7 @@ abstract class AbstractArticleDataProviderResolver implements DataProviderResolv
         );
 
         /** @var ArticleDimensionContent[] $articles */
-        $articles = array_map(
+        $articles = \array_map(
             fn(ArrayAccessItem $item) => $item->getResource(),
             $providerResult->getItems()
         );
@@ -83,12 +81,12 @@ abstract class AbstractArticleDataProviderResolver implements DataProviderResolv
      */
     private function resolveArticles(array $articles): array
     {
-        $structures = array_map(
+        $structures = \array_map(
             fn(ArticleDimensionContentInterface $article) => $this->contentStructureBridgeFactory->getBridge($article, $article->getResourceId(), $article->getLocale()),
             $articles
         );
 
-        return array_map(
+        return \array_map(
             fn(StructureInterface $structure) => $this->structureResolver->resolve($structure, $structure->getLanguageCode()),
             $structures
         );

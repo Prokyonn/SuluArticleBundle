@@ -2,6 +2,15 @@
 
 declare(strict_types=1);
 
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
 namespace Sulu\Article\Infrastructure\Symfony\HttpKernel;
 
 use Sulu\Article\Application\Mapper\ArticleContentMapper;
@@ -35,9 +44,11 @@ use Sulu\Bundle\WebsiteBundle\ReferenceStore\ReferenceStore;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
+
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
-use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /**
  * @experimental
@@ -251,7 +262,7 @@ final class SuluArticleBundle extends AbstractBundle
             ->args([
                 new Reference('sulu_article.article_repository'),
                 new Reference('sulu_content.content_manager'),
-                new Reference('sulu_article.article_reference_store')
+                new Reference('sulu_article.article_reference_store'),
             ])
             ->tag('sulu.content.type', ['alias' => 'single_article_selection']);
 
@@ -260,7 +271,7 @@ final class SuluArticleBundle extends AbstractBundle
             ->args([
                 new Reference('sulu_article.article_repository'),
                 new Reference('sulu_content.content_manager'),
-                new Reference('sulu_article.article_reference_store')
+                new Reference('sulu_article.article_reference_store'),
             ])
             ->tag('sulu.content.type', ['alias' => 'article_selection']);
 
@@ -287,7 +298,7 @@ final class SuluArticleBundle extends AbstractBundle
             ->args([
                 new Reference('sulu_article.article_data_provider'),
                 new Reference('sulu_content.content_structure_bridge_factory'),
-                new Reference('sulu_headless.structure_resolver')
+                new Reference('sulu_headless.structure_resolver'),
             ])
             ->tag('sulu_headless.data_provider_resolver');
 
