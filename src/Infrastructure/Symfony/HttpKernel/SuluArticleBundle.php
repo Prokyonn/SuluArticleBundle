@@ -23,6 +23,7 @@ use Sulu\Article\Infrastructure\Sulu\Content\ArticleSelectionContentType;
 use Sulu\Article\Infrastructure\Sulu\Content\ArticleSitemapProvider;
 use Sulu\Article\Infrastructure\Sulu\Content\ArticleTeaserProvider;
 use Sulu\Article\Infrastructure\Sulu\Content\SingleArticleSelectionContentType;
+use Sulu\Article\Infrastructure\Sulu\Content\ArticleDataProvider;
 use Sulu\Article\UserInterface\Controller\Admin\ArticleController;
 use Sulu\Bundle\ContentBundle\Content\Infrastructure\Sulu\Preview\ContentObjectProvider;
 use Sulu\Bundle\ContentBundle\Content\Infrastructure\Sulu\Search\ContentSearchMetadataProvider;
@@ -226,16 +227,6 @@ final class SuluArticleBundle extends AbstractBundle
             ])
             ->tag('sulu.link.provider', ['alias' => 'article']);
 
-        // Smart Content services
-        $services->set('sulu_article.article_data_provider_repository')
-            ->class(ContentDataProviderRepository::class) // TODO this should not be handled via Content Bundle instead own service which uses the ArticleRepository
-            ->args([
-                new Reference('sulu_content.content_manager'),
-                new Reference('doctrine.orm.entity_manager'),
-                '%sulu_document_manager.show_drafts%',
-                ArticleInterface::class,
-            ]);
-
         $services->set('sulu_article.article_reference_store')
             ->class(ReferenceStore::class)
             ->tag('sulu_website.reference_store', ['alias' => ArticleInterface::RESOURCE_KEY]);
@@ -258,11 +249,20 @@ final class SuluArticleBundle extends AbstractBundle
             ])
             ->tag('sulu.content.type', ['alias' => 'article_selection']);
 
-        $services->set('sulu_article.article_data_provider')
-            ->class(ContentDataProvider::class) // TODO this should not be handled via Content Bundle instead own service which uses the ArticleRepository
+        // Smart Content services
+        $services->set('sulu_article.article_data_provider_repository')
+            ->class(ContentDataProviderRepository::class) // TODO this should not be handled via Content Bundle instead own service which uses the ArticleRepository
             ->args([
-                new Reference('sulu_article.article_data_provider_repository'),
-                new Reference('sulu_core.array_serializer'),
+                new Reference('sulu_content.content_manager'),
+                new Reference('doctrine.orm.entity_manager'),
+                '%sulu_document_manager.show_drafts%',
+                ArticleInterface::class,
+            ]);
+
+        $services->set('sulu_article.article_data_provider')
+            ->class(ArticleDataProvider::class) // TODO this should not be handled via Content Bundle instead own service which uses the ArticleRepository
+            ->args([
+                new Reference('sulu_article.article_repository'),
                 new Reference('sulu_content.content_manager'),
                 new Reference('sulu_article.article_reference_store'),
             ])
