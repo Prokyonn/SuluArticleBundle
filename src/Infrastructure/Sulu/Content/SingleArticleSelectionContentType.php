@@ -54,7 +54,6 @@ class SingleArticleSelectionContentType extends SimpleContentType implements Pre
                 ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_WEBSITE => true,
             ]);
 
-
         $dimensionContent = $this->contentManager->resolve($article, $dimensionAttributes);
         return $this->contentManager->normalize($dimensionContent);
     }

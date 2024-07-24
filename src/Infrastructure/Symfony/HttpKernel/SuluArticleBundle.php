@@ -23,6 +23,7 @@ use Sulu\Article\Infrastructure\Sulu\Content\ArticleSelectionContentType;
 use Sulu\Article\Infrastructure\Sulu\Content\ArticleSitemapProvider;
 use Sulu\Article\Infrastructure\Sulu\Content\ArticleTeaserProvider;
 use Sulu\Article\Infrastructure\Sulu\Content\SingleArticleSelectionContentType;
+use Sulu\Article\Infrastructure\Sulu\Headless\Resolver\ArticleDataProviderResolver;
 use Sulu\Article\UserInterface\Controller\Admin\ArticleController;
 use Sulu\Bundle\ContentBundle\Content\Infrastructure\Sulu\Preview\ContentObjectProvider;
 use Sulu\Bundle\ContentBundle\Content\Infrastructure\Sulu\Search\ContentSearchMetadataProvider;
@@ -34,11 +35,9 @@ use Sulu\Bundle\WebsiteBundle\ReferenceStore\ReferenceStore;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-
-use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
-
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 /**
  * @experimental
@@ -274,6 +273,23 @@ final class SuluArticleBundle extends AbstractBundle
                 new Reference('sulu_article.article_reference_store'),
             ])
             ->tag('sulu.smart_content.data_provider', ['alias' => ArticleInterface::RESOURCE_KEY]);
+
+        // Headless
+        $services->set('sulu_article.headless.resolver.article_data_provider')
+            ->class(ArticleDataProviderResolver::class)
+            ->args([
+                new Reference('sulu_article.article_data_provider'),
+            ])
+            ->tag('sulu_headless.data_provider_resolver');
+
+        $services->set('sulu_article.headless.resolver.article_page_tree_data_provider')
+            ->class(ArticleDataProviderResolver::class)
+            ->args([
+                new Reference('sulu_article.article_data_provider'),
+                new Reference('sulu_content.content_structure_bridge_factory'),
+                new Reference('sulu_headless.structure_resolver')
+            ])
+            ->tag('sulu_headless.data_provider_resolver');
 
         // Search integration
         $services->set('sulu_article.article_search_metadata_provider')

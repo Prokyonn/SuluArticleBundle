@@ -41,7 +41,7 @@ class ArticleSelectionContentType extends SimpleContentType implements PreResolv
             'stage' => DimensionContentInterface::STAGE_LIVE,
         ];
 
-        $article = $this->articleRepository->findBy(
+        $articles = $this->articleRepository->findBy(
             filters: \array_merge(
                 ['uuids' => $value],
                 $dimensionAttributes,
@@ -50,9 +50,8 @@ class ArticleSelectionContentType extends SimpleContentType implements PreResolv
                 ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_WEBSITE => true,
             ]);
 
-
         $result = [];
-        foreach ($article as $article) {
+        foreach ($articles as $article) {
             $dimensionContent = $this->contentManager->resolve($article, $dimensionAttributes);
             $result[\array_search($article->getUuid(), $value, false)] = $this->contentManager->normalize($dimensionContent);
         }
