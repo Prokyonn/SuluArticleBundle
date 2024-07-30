@@ -78,11 +78,13 @@
         <property name="created" translation="sulu_admin.created">
             <field-name>created</field-name>
             <entity-name>Sulu\Article\Domain\Model\ArticleInterface</entity-name>
+            <transformer type="datetime"/>
         </property>
 
         <property name="changed" translation="sulu_admin.changed">
             <field-name>changed</field-name>
             <entity-name>Sulu\Article\Domain\Model\ArticleInterface</entity-name>
+            <transformer type="datetime"/>
         </property>
 
         <concatenation-property name="creator" visibility="always" glue=" "
