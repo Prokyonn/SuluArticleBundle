@@ -50,6 +50,13 @@
         </join>
     </joins>
 
+    <joins name="author">
+        <join>
+            <entity-name>authorEntity</entity-name>
+            <field-name>dimensionContent.author</field-name>
+        </join>
+    </joins>
+
     <properties>
         <!-- TODO should be uuid not id -->
         <property name="id" translation="sulu_admin.uuid">
@@ -74,6 +81,27 @@
 
             <transformer type="title"/>
         </case-property>
+
+        <concatenation-property name="author" visibility="yes" translation="sulu_admin.author" glue=" " sortable="false">
+            <field>
+                <field-name>firstName</field-name>
+                <entity-name>authorEntity</entity-name>
+
+                <joins ref="author"/>
+            </field>
+            <field>
+                <field-name>lastName</field-name>
+                <entity-name>authorEntity</entity-name>
+
+                <joins ref="author"/>
+            </field>
+        </concatenation-property>
+
+        <property name="authored" type="date" visibility="no" translation="sulu_admin.authored"
+        >
+            <transformer type="datetime"/>
+            <filter type="date"/>
+        </property>
 
         <property name="created" translation="sulu_admin.created">
             <field-name>created</field-name>
