@@ -224,7 +224,7 @@ final class SuluArticleBundle extends AbstractBundle
                 new Reference('sulu_page.structure.factory'),
                 new Reference('doctrine.orm.entity_manager'),
             ])
-            ->tag('sulu.link.provider', ['alias' => ArticleInterface::RESOURCE_KEY]);
+            ->tag('sulu.link.provider', ['alias' => 'article']);
 
         // Smart Content services
         $services->set('sulu_article.article_data_provider_repository')
