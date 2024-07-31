@@ -14,6 +14,7 @@ namespace Sulu\Article\Infrastructure\Doctrine\Repository;
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\EntityRepository;
 use Doctrine\ORM\NoResultException;
+use Doctrine\ORM\Query\Expr\OrderBy;
 use Doctrine\ORM\QueryBuilder;
 use Sulu\Article\Domain\Exception\ArticleNotFoundException;
 use Sulu\Article\Domain\Model\ArticleDimensionContentInterface;
@@ -149,6 +150,23 @@ class ArticleRepository implements ArticleRepositoryInterface
         }
     }
 
+    public function findIdentifiersBy(array $filters = [], array $sortBy = []): iterable
+    {
+        $queryBuilder = $this->createQueryBuilder($filters, $sortBy);
+
+        $queryBuilder->select('DISTINCT article.uuid');
+
+        /** @var OrderBy $orderBy */
+        foreach ($queryBuilder->getDQLPart('orderBy') as $orderBy) {
+            $queryBuilder->addSelect(\explode(' ', $orderBy->getParts()[0])[0]);
+        }
+
+        /** @var iterable $identifiers */
+        $identifiers = $queryBuilder->getQuery()->getResult();
+
+        return $identifiers;
+    }
+
     public function add(ArticleInterface $article): void
     {
         $this->entityManager->persist($article);
@@ -238,19 +256,26 @@ class ArticleRepository implements ArticleRepositoryInterface
             );
         }
 
+        if ([] !== $sortBy) {
+            foreach ($sortBy as $field => $order) {
+                if ('uuid' === $field) {
+                    $queryBuilder->addOrderBy('article.uuid', $order);
+                } elseif ('created' === $field) {
+                    $queryBuilder->addOrderBy('article.created', $order);
+                } elseif (\in_array($field, ['title', 'authored', 'workflowPublished'])) {
+                    $this->joinDimensionContent($queryBuilder, 'article');
 
-
-        // TODO add sortBys
+                    $queryBuilder->addOrderBy('dimensionContent.' . $field, $order);
+                }
+            }
+        }
 
         // selects
         if ($selects[self::SELECT_ARTICLE_CONTENT] ?? null) {
             /** @var array<string, bool> $contentSelects */
             $contentSelects = $selects[self::SELECT_ARTICLE_CONTENT];
 
-            $queryBuilder->leftJoin(
-                'article.dimensionContents',
-                'dimensionContent'
-            );
+            $this->joinDimensionContent($queryBuilder, 'article');
 
             $this->dimensionContentQueryEnhancer->addSelects(
                 $queryBuilder,
@@ -261,5 +286,28 @@ class ArticleRepository implements ArticleRepositoryInterface
         }
 
         return $queryBuilder;
+    }
+
+    private function joinDimensionContent(QueryBuilder $queryBuilder, string $alias): void
+    {
+        if (!$this->isJoinAlreadyPresent($queryBuilder, 'dimensionContent')) {
+            $queryBuilder->leftJoin(
+                $alias . '.dimensionContents',
+                'dimensionContent'
+            );
+        }
+    }
+
+    private function isJoinAlreadyPresent(QueryBuilder $queryBuilder, string $alias): bool
+    {
+        foreach ($queryBuilder->getDQLPart('join') as $joins) {
+            foreach ($joins as $join) {
+                if ($join->getAlias() === $alias) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

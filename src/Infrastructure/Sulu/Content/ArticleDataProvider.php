@@ -1,5 +1,14 @@
 <?php
 
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
 namespace Sulu\Article\Infrastructure\Sulu\Content;
 
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
@@ -16,13 +25,12 @@ use Sulu\Component\SmartContent\DataProviderResult;
 
 class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInterface
 {
-
     public function __construct(
         private ArticleRepositoryInterface $articleRepository,
         private ContentManagerInterface $contentManager,
-        private ReferenceStoreInterface $articleReferenceStore
-    )
-    {
+        private ReferenceStoreInterface $articleReferenceStore,
+        private bool $showDrafts,
+    ) {
     }
 
     public function getConfiguration(): ProviderConfigurationInterface
@@ -43,17 +51,16 @@ class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInt
             ->enablePresentAs()
             ->enableSorting(
                 [
-                    ['column' => 'published', 'title' => 'sulu_admin.published'],
+                    ['column' => 'workflowPublished', 'title' => 'sulu_admin.published'],
                     ['column' => 'authored', 'title' => 'sulu_admin.authored'],
                     ['column' => 'created', 'title' => 'sulu_admin.created'],
-                    ['column' => 'title.raw', 'title' => 'sulu_admin.title'],
-                    ['column' => 'author_full_name.raw', 'title' => 'sulu_admin.author'],
+                    ['column' => 'title', 'title' => 'sulu_admin.title'],
                 ]
             );
 
-//        if (\method_exists($builder, 'enableTypes')) {
-//            $builder->enableTypes($this->getTypes());
-//        }
+        //        if (\method_exists($builder, 'enableTypes')) {
+        //            $builder->enableTypes($this->getTypes());
+        //        }
 
         return $builder;
     }
@@ -68,17 +75,35 @@ class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInt
 
     public function resolveDataItems(array $filters, array $propertyParameter, array $options = [], $limit = null, $page = 1, $pageSize = null)
     {
-        [$filter, $sortBy] = $this->resolveFilters($filters, $page, $options['locale']);
-        $articles = $this->articleRepository->findBy(
-            $filter,
-            $sortBy,
-            [
-                ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_ADMIN
-            ]
-        );
-        $articles = iterator_to_array($articles);
+        [$filters, $sortBy] = $this->resolveFilters($filters, $page, $options['locale']);
 
-        return new DataProviderResult($articles, false);
+        $dimensionAttributes = [
+            'locale' => $options['locale'],
+            'stage' => $this->showDrafts ? DimensionContentInterface::STAGE_DRAFT : DimensionContentInterface::STAGE_LIVE,
+        ];
+
+        $identifiers = $this->articleRepository->findIdentifiersBy(
+            filters: \array_merge($dimensionAttributes, $filters),
+            sortBy: $sortBy
+        );
+
+        $articles = $this->articleRepository->findBy(
+            filters: \array_merge($dimensionAttributes, ['uuids' => $identifiers]),
+            sortBy: $sortBy,
+            selects: [ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_ADMIN => true]
+        );
+
+        $result = [];
+        foreach ($articles as $article) {
+            $dimensionContent = $this->contentManager->resolve($article, $dimensionAttributes);
+            $result[] = [
+                'id' => $article->getId(),
+                'title' => $dimensionContent->getTitle(),
+            ];
+        }
+        $hasNextPage = \count($result) > ($pageSize ?? $limit);
+
+        return new DataProviderResult($result, $hasNextPage);
     }
 
     public function resolveResourceItems(array $filters, array $propertyParameter, array $options = [], $limit = null, $page = 1, $pageSize = null): DataProviderResult
@@ -87,13 +112,16 @@ class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInt
 
         $dimensionAttributes = [
             'locale' => $options['locale'],
-            'stage' => DimensionContentInterface::STAGE_LIVE,
+            'stage' => $this->showDrafts ? DimensionContentInterface::STAGE_DRAFT : DimensionContentInterface::STAGE_LIVE,
         ];
 
-        $limit = $filters['limit'] ?? 0;
+        $identifiers = $this->articleRepository->findIdentifiersBy(
+            filters: \array_merge($dimensionAttributes, $filters),
+            sortBy: $sortBy
+        );
 
         $articles = $this->articleRepository->findBy(
-            filters: array_merge($dimensionAttributes, $filters),
+            filters: \array_merge($dimensionAttributes, ['uuids' => $identifiers]),
             sortBy: $sortBy,
             selects: [ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_WEBSITE => true]
         );
@@ -102,8 +130,10 @@ class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInt
         foreach ($articles as $article) {
             $dimensionContent = $this->contentManager->resolve($article, $dimensionAttributes);
             $result[] = $this->contentManager->normalize($dimensionContent);
+            $this->articleReferenceStore->add($article->getId());
         }
-        $hasNextPage = count($result) > ($pageSize ?? $limit);
+        $hasNextPage = \count($result) > ($pageSize ?? $limit);
+
         return new DataProviderResult($result, $hasNextPage);
     }
 
@@ -126,7 +156,7 @@ class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInt
             $filter['tagOperator'] = $filters['tagOperator'];
         }
         if (isset($filters['limitResult'])) {
-            $filter['limit'] = (int)$filters['limitResult'];
+            $filter['limit'] = (int) $filters['limitResult'];
         }
         $filter['page'] = $page;
 
