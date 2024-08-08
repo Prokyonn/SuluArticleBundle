@@ -50,13 +50,6 @@ final class SuluArticleBundle extends AbstractBundle
     use PersistenceExtensionTrait;
     use PersistenceBundleTrait;
 
-    public const ALIAS = 'sulu_next_article';
-    public const NAME = 'SuluNextArticleBundle';
-
-    protected string $extensionAlias = self::ALIAS;
-
-    protected $name = self::NAME;
-
     /**
      * @internal this method is not part of the public API and should only be called by the Symfony framework classes
      */
