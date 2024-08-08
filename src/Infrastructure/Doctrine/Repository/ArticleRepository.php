@@ -156,6 +156,7 @@ class ArticleRepository implements ArticleRepositoryInterface
 
         $queryBuilder->select('DISTINCT article.uuid');
 
+        // we need to select the fields which are used in the order by clause
         /** @var OrderBy $orderBy */
         foreach ($queryBuilder->getDQLPart('orderBy') as $orderBy) {
             $queryBuilder->addSelect(\explode(' ', $orderBy->getParts()[0])[0]);
@@ -246,13 +247,17 @@ class ArticleRepository implements ArticleRepositoryInterface
             $queryBuilder->setFirstResult($offset);
         }
 
-        if (\array_key_exists('locale', $filters) // should also work with locale = null
-            && \array_key_exists('stage', $filters)) {
+        if (
+            (\array_key_exists('locale', $filters)       // should also work with locale = null
+            && \array_key_exists('stage', $filters))
+            || ([] === $filters && [] !== $sortBy)      // if no filters are set, but sortBy is set, we need to set the sorting
+        ) {
             $this->dimensionContentQueryEnhancer->addFilters(
                 $queryBuilder,
                 'article',
                 $this->articleDimensionContentClassName,
-                $filters
+                $filters,
+                $sortBy
             );
         }
 
@@ -262,10 +267,6 @@ class ArticleRepository implements ArticleRepositoryInterface
                     $queryBuilder->addOrderBy('article.uuid', $order);
                 } elseif ('created' === $field) {
                     $queryBuilder->addOrderBy('article.created', $order);
-                } elseif (\in_array($field, ['title', 'authored', 'workflowPublished'])) {
-                    $this->joinDimensionContent($queryBuilder, 'article');
-
-                    $queryBuilder->addOrderBy('dimensionContent.' . $field, $order);
                 }
             }
         }
@@ -275,7 +276,10 @@ class ArticleRepository implements ArticleRepositoryInterface
             /** @var array<string, bool> $contentSelects */
             $contentSelects = $selects[self::SELECT_ARTICLE_CONTENT];
 
-            $this->joinDimensionContent($queryBuilder, 'article');
+            $queryBuilder->leftJoin(
+                'article.dimensionContents',
+                'dimensionContent'
+            );
 
             $this->dimensionContentQueryEnhancer->addSelects(
                 $queryBuilder,
@@ -286,28 +290,5 @@ class ArticleRepository implements ArticleRepositoryInterface
         }
 
         return $queryBuilder;
-    }
-
-    private function joinDimensionContent(QueryBuilder $queryBuilder, string $alias): void
-    {
-        if (!$this->isJoinAlreadyPresent($queryBuilder, 'dimensionContent')) {
-            $queryBuilder->leftJoin(
-                $alias . '.dimensionContents',
-                'dimensionContent'
-            );
-        }
-    }
-
-    private function isJoinAlreadyPresent(QueryBuilder $queryBuilder, string $alias): bool
-    {
-        foreach ($queryBuilder->getDQLPart('join') as $joins) {
-            foreach ($joins as $join) {
-                if ($join->getAlias() === $alias) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
     }
 }

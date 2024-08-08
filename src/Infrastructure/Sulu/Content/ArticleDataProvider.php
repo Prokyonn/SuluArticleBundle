@@ -55,12 +55,9 @@ class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInt
                     ['column' => 'authored', 'title' => 'sulu_admin.authored'],
                     ['column' => 'created', 'title' => 'sulu_admin.created'],
                     ['column' => 'title', 'title' => 'sulu_admin.title'],
+                    ['column' => 'author', 'title' => 'sulu_admin.author'],
                 ]
             );
-
-        //        if (\method_exists($builder, 'enableTypes')) {
-        //            $builder->enableTypes($this->getTypes());
-        //        }
 
         return $builder;
     }
@@ -167,9 +164,9 @@ class ArticleDataProvider implements DataProviderInterface, DataProviderAliasInt
         return [$filter, $sortBy];
     }
 
-    public function resolveDatasource($datasource, array $propertyParameter, array $options)
+    public function resolveDatasource($datasource, array $propertyParameter, array $options): void
     {
-        $test = 123;
+        return;
     }
 
     public function getAlias()
